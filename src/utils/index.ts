@@ -32,3 +32,10 @@ export const getTemplateName = (template: t.Template) => {
 
 	throw new Error();
 };
+
+export const insertAt = <T>(array: T[], item: T, index: number): T[] => {
+	if (index < 0 || index > array.length) {
+		throw new Error('Index out of bounds');
+	}
+	return [...array.slice(0, index), item, ...array.slice(index)];
+};

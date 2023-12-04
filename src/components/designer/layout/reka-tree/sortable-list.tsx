@@ -7,6 +7,7 @@ import { useRekaEditor } from '@/context/RekaProvider';
 import { findItemDeep } from '@/context/RekaProvider/reducer';
 import { SortableTreeItem } from './sortable-item';
 import type { ComponentTreeItems } from '@/context/RekaProvider/reducer';
+import { insertAt } from '@/utils';
 
 interface ListProps {
 	items: ComponentTreeItems;
@@ -32,44 +33,41 @@ export const SortableList = ({ items }: ListProps) => {
 					const fromParentRef = reason.draggedFromParent;
 					const newParentRef = reason.droppedToParent;
 
-					console.log({ outlineItems });
+					// HERE <-- nicolas assumed it is 0
 					updateTreeWithCallback({ items, reason }, state => {
-						console.log({
-							outlineItems: state.outlineItems,
-						});
+						if (
+							newParentRef &&
+							fromParentRef &&
+							rootTemplate?.children &&
+							newParentRef.id === fromParentRef.id
+						) {
+							const { draggedFromParent, draggedItem, droppedToParent } =
+								reason;
+							const stateOutlineItems = state.outlineItems;
+
+							const indexToInsert =
+								stateOutlineItems[0].children?.findIndex(
+									i => i.id === draggedItem.id
+								) ?? 0;
+
+							const filteredChildren = [...rootTemplate.children].filter(
+								i => i.id !== draggedItem.id
+							);
+							const newChildren = insertAt(
+								filteredChildren,
+								draggedItem.template,
+								indexToInsert
+							);
+
+							reka.change(() => {
+								rootTemplate.children = newChildren;
+							});
+
+							console.log('[+] REKA newChildren === ', {
+								newChildren,
+							});
+						}
 					});
-
-					if (
-						newParentRef &&
-						fromParentRef &&
-						newParentRef.id === fromParentRef.id
-					) {
-						// reka.change(() => {
-						// 	const itemTree = recursiveBuildNewNodesFromItems(items);
-						// 	const parent = rootTemplate;
-						// 	if (!(parent instanceof t.SlottableTemplate)) return;
-
-						// 	parent.children.splice(
-						// 		parent.children.indexOf(child),
-						// 		1,
-						// 		...itemTree
-						// 	);
-						// });
-						// updateTreeWithCallback({ items, reason }, state => {
-						// 	// all but the first
-						// 	const newNodes = state.outlineItems.slice(1);
-
-						// 	// let updatedItem = findItemDeep(
-						// 	// 	newNodes,
-						// 	// 	item.id
-						// 	// )! as FlattenedItem<RekaRef>;
-						// 	// if (!updatedItem.parentId) return;
-						// 	// let parentItem = findItemDeep(newNodes, updatedItem.parentId);
-						// 	// let newIndex = parentItem?.children?.indexOf(updatedItem);
-						// });
-
-						return;
-					}
 
 					// item is becoming a child of a new parent
 					if (newParentRef) {
