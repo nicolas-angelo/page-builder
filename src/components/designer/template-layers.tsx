@@ -5,6 +5,7 @@ import * as t from '@rekajs/types';
 import { IconButton } from '@/components/ui/icon-button';
 import DeleteTwoToneIcon from '@mui/icons-material/DeleteTwoTone';
 import { cn } from '@/utils';
+import { toJS } from '@rekajs/core';
 
 type TemplateLayersProps = {
 	componentId: string;
@@ -13,6 +14,7 @@ type TemplateLayersProps = {
 type RenderTemplateNodeProps = {
 	templateId: string;
 	depth?: number;
+	templateNode: any;
 };
 
 const getTemplateName = (template: t.Template) => {
@@ -36,7 +38,9 @@ const RenderTemplateNode = observer((props: RenderTemplateNodeProps) => {
 	const depth = props.depth ?? 0;
 	const template = reka.getNodeFromId(props.templateId, t.Template);
 
-	if (!template) {
+	// console.log({ children: templateObj.children, id: props.templateId });
+
+	if (!props.templateNode) {
 		return null;
 	}
 
@@ -89,14 +93,18 @@ const RenderTemplateNode = observer((props: RenderTemplateNodeProps) => {
 					</div>
 				</div>
 			</div>
-			{t.is(template, t.SlottableTemplate) &&
-				template.children.map(child => (
+			{props.templateNode.children.map(child => {
+				return (
 					<RenderTemplateNode
 						key={child.id}
 						templateId={child.id}
 						depth={depth + 1}
+						templateNode={child}
 					/>
-				))}
+				);
+			})}
+			{/* {'child'}
+			{templateObj.children.length} */}
 		</div>
 	);
 });
@@ -113,7 +121,10 @@ export const TemplateLayers = (props: TemplateLayersProps) => {
 	return (
 		<div className="mt-3">
 			{component.template && (
-				<RenderTemplateNode templateId={component.template.id} />
+				<RenderTemplateNode
+					templateId={component.template.id}
+					templateNode={component.template}
+				/>
 			)}
 		</div>
 	);

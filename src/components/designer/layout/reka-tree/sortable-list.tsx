@@ -39,38 +39,6 @@ export const SortableList = ({ items }: ListProps) => {
 						});
 					});
 
-					if (
-						newParentRef &&
-						fromParentRef &&
-						newParentRef.id === fromParentRef.id
-					) {
-						// reka.change(() => {
-						// 	const itemTree = recursiveBuildNewNodesFromItems(items);
-						// 	const parent = rootTemplate;
-						// 	if (!(parent instanceof t.SlottableTemplate)) return;
-
-						// 	parent.children.splice(
-						// 		parent.children.indexOf(child),
-						// 		1,
-						// 		...itemTree
-						// 	);
-						// });
-						// updateTreeWithCallback({ items, reason }, state => {
-						// 	// all but the first
-						// 	const newNodes = state.outlineItems.slice(1);
-
-						// 	// let updatedItem = findItemDeep(
-						// 	// 	newNodes,
-						// 	// 	item.id
-						// 	// )! as FlattenedItem<RekaRef>;
-						// 	// if (!updatedItem.parentId) return;
-						// 	// let parentItem = findItemDeep(newNodes, updatedItem.parentId);
-						// 	// let newIndex = parentItem?.children?.indexOf(updatedItem);
-						// });
-
-						return;
-					}
-
 					// item is becoming a child of a new parent
 					if (newParentRef) {
 						let newParentId = String(newParentRef.id);
@@ -87,16 +55,16 @@ export const SortableList = ({ items }: ListProps) => {
 						}
 
 						reka.change(() => {
-							if (
-								// if target is not a slottable template
-								!(target instanceof t.SlottableTemplate) ||
-								!newParentRef.canHaveChildren
-							) {
-								console.log('target is not slottable template');
-								return;
-							}
-							// add to new parent
-							target.children.splice(target.children.indexOf(child), 0, child);
+							// if (
+							// 	// if target is not a slottable template
+							// 	!(target instanceof t.SlottableTemplate) ||
+							// 	!newParentRef.canHaveChildren
+							// ) {
+							// 	console.log('target is not slottable template');
+							// 	return;
+							// }
+
+							// remove from old parent
 							if (fromParentRef) {
 								// remove from old parent
 								let oldParentId = String(fromParentRef.id);
@@ -108,6 +76,19 @@ export const SortableList = ({ items }: ListProps) => {
 									);
 								}
 							}
+
+							// we will use the new array from dnd-sortable to get the new index
+							const targetChildrenIds = items[0].children?.map(
+								child => child.id
+							);
+
+							// add to new parent
+							target.children.splice(
+								// we use it here to get new index
+								targetChildrenIds.indexOf(child.id),
+								0,
+								child
+							);
 						});
 						// handle adding to new parent
 						// reka.change(() => {
