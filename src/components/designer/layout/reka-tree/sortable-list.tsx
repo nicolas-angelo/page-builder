@@ -1,4 +1,5 @@
 'use client';
+import { useRef } from 'react';
 import { useReka, observer } from '@rekajs/react';
 import * as t from '@rekajs/types';
 import useRekaActions from '@/hooks/use-reka-actions';
@@ -8,126 +9,100 @@ import { findItemDeep } from '@/context/RekaProvider/reducer';
 import { SortableTreeItem } from './sortable-item';
 import type { ComponentTreeItems } from '@/context/RekaProvider/reducer';
 
+import _ from 'lodash';
+
 interface ListProps {
 	items: ComponentTreeItems;
 }
 
-export const SortableList = ({ items }: ListProps) => {
+export function findRekaNodeDeep(
+	nodes: t.Template[],
+	itemId: string
+): t.Template | null {
+	for (const item of nodes) {
+		const { id } = item;
+
+		if (id === itemId) {
+			return item;
+		}
+
+		if (item instanceof t.SlottableTemplate && item.children.length) {
+			const child = findRekaNodeDeep(item.children, itemId);
+
+			if (child) {
+				return child;
+			}
+		}
+	}
+
+	return null;
+}
+
+function getIndexById(array: any[], Id: string) {
+	return array.findIndex(c => c.id === Id);
+}
+function getRekaIndexById(parent: t.SlottableTemplate, id: string) {
+	return parent.children.findIndex(c => c.id === id);
+}
+
+export const SortableList = ({ items: sortableItems }: ListProps) => {
 	const { reka } = useReka();
-	const { actions, editorState, updateTreeWithCallback } = useRekaEditor();
-	const { outlineItems } = editorState;
+	const { actions, editorState } = useRekaEditor();
 	const { rootApp, rootTemplate } = useRekaActions();
+
+	const { outlineItems } = editorState;
+
+	const getNodeFromId = (id: string) =>
+		reka.getNodeFromId(id, t.SlottableTemplate);
 
 	return (
 		<SortableTree
-			items={items}
+			items={sortableItems}
 			onItemsChanged={async (items, reason) => {
-				if (reason.type === 'dropped') {
-					console.log('dropped', reason, items);
-					const item = reason.draggedItem;
-					const child = reka.getNodeFromId(String(item.id), t.Template);
+				switch (reason.type) {
+					case 'dropped':
+						// console.log('dropped', reason, items);
 
-					actions.updateTree({ items, reason });
+						const item = reason.draggedItem;
+						const child = reka.getNodeFromId(item.id, t.Template);
+						const childParent = reka.getParent(child, t.SlottableTemplate);
 
-					const fromParentRef = reason.draggedFromParent;
-					const newParentRef = reason.droppedToParent;
+						const oldParentRef = reason.draggedFromParent!;
+						const newParentRef = reason.droppedToParent;
 
-					console.log({ outlineItems });
-					updateTreeWithCallback({ items, reason }, state => {
-						console.log({
-							outlineItems: state.outlineItems,
-						});
-					});
+						console.log(reason);
+						if (!newParentRef) {
+							return; // if item is being moved to the root
+						}
 
-					if (
-						newParentRef &&
-						fromParentRef &&
-						newParentRef.id === fromParentRef.id
-					) {
-						// reka.change(() => {
-						// 	const itemTree = recursiveBuildNewNodesFromItems(items);
-						// 	const parent = rootTemplate;
-						// 	if (!(parent instanceof t.SlottableTemplate)) return;
+						// if item is being moved to a new parent
+						const [oldParent, newParent] = [oldParentRef, newParentRef].map(
+							ref => getNodeFromId(ref.id)
+						);
 
-						// 	parent.children.splice(
-						// 		parent.children.indexOf(child),
-						// 		1,
-						// 		...itemTree
-						// 	);
-						// });
-						// updateTreeWithCallback({ items, reason }, state => {
-						// 	// all but the first
-						// 	const newNodes = state.outlineItems.slice(1);
+						const xItem = findItemDeep(items, item.id);
+						const oldIndex = getRekaIndexById(oldParent, item.id);
+						const newIndex = getRekaIndexById(newParent, item.id);
 
-						// 	// let updatedItem = findItemDeep(
-						// 	// 	newNodes,
-						// 	// 	item.id
-						// 	// )! as FlattenedItem<RekaRef>;
-						// 	// if (!updatedItem.parentId) return;
-						// 	// let parentItem = findItemDeep(newNodes, updatedItem.parentId);
-						// 	// let newIndex = parentItem?.children?.indexOf(updatedItem);
-						// });
+						console.log({ oldIndex, newIndex });
+						const depth = item.depth;
 
-						return;
-					}
-
-					// item is becoming a child of a new parent
-					if (newParentRef) {
-						let newParentId = String(newParentRef.id);
-						let target = reka.getNodeFromId(newParentId, t.Template);
-
-						if (
-							target instanceof t.TagTemplate &&
-							target.tag === 'button' &&
-							child instanceof t.TagTemplate &&
-							child.tag !== 'text'
-						) {
-							console.log('can only drop text in button');
-							return;
+						if (oldParent.id === newParent.id && oldIndex === newIndex) {
+							return; // if item is being moved to the same place
 						}
 
 						reka.change(() => {
-							if (
-								// if target is not a slottable template
-								!(target instanceof t.SlottableTemplate) ||
-								!newParentRef.canHaveChildren
-							) {
-								console.log('target is not slottable template');
-								return;
-							}
-							// add to new parent
-							target.children.splice(target.children.indexOf(child), 0, child);
-							if (fromParentRef) {
-								// remove from old parent
-								let oldParentId = String(fromParentRef.id);
-								let oldParent = reka.getNodeFromId(oldParentId, t.Template);
-								if (oldParent instanceof t.SlottableTemplate) {
-									oldParent.children.splice(
-										oldParent.children.indexOf(child),
-										1
-									);
-								}
-							}
+							oldParent.children.splice(oldIndex, 1);
+							newParent.children.splice(newIndex, 0, child);
 						});
-						// handle adding to new parent
-						// reka.change(() => {
-						// 	if (!(newParent instanceof t.SlottableTemplate)) {
-						// 		return;
-						// 	}
-						// 	console.log(
-						// 		'adding to parent',
-						// 		getTemplateName(newParent)
-						// 	);
-						// 	newParent.children.push(child);
-						// });
-					}
-				}
-				if (reason.type === 'removed') {
-					console.log('removed', reason);
-					actions.updateTree({ items, reason });
-				}
-				if (reason.type === 'collapsed' || reason.type === 'expanded') {
-					actions.updateTree({ items, reason });
+						actions.updateTree({ items, reason });
+
+						break;
+					case 'collapsed':
+					case 'expanded':
+					case 'removed':
+						actions.updateTree({ items, reason });
+						break;
 				}
 			}}
 			TreeItemComponent={SortableTreeItem}

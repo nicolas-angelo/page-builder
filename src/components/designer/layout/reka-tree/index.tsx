@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { toJS } from '@rekajs/core';
 import { useReka, observer } from '@rekajs/react';
 import * as t from '@rekajs/types';
 import useRekaActions from '@/hooks/use-reka-actions';
@@ -48,6 +49,7 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 			}
 		}
 
+		let depth = 0;
 		// recursive build
 		const children =
 			template instanceof t.SlottableTemplate
@@ -56,12 +58,16 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 				  })
 				: [];
 
+		const name = getTemplateName(template);
+
+		// not sure if im doing this right for depth
 		return {
-			id: template.id,
-			name: getTemplateName(template),
+			depth: name === 'root' ? 0 : depth + 1,
+			disableSorting: name === 'root' ? true : false,
+			name,
 			canHaveChildren,
 			children,
-			template: template,
+			id: template.id,
 		};
 	}
 
@@ -73,33 +79,29 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 		});
 	}
 
+	function createRootItem() {
+		if (!rootApp || !rootTemplate) return;
+		actions.addComponent(buildNewItem(rootTemplate));
+	}
+
 	useEffect(() => {
 		if (!rootTemplate || itemsHaveRoot) return;
-		// add root template to sortable outline items on page load
-		actions.addComponent({
-			id: rootTemplate.id,
-			name: getTemplateName(rootTemplate),
-			canHaveChildren: true,
-			disableSorting: true,
-			children: [],
-			template: rootTemplate,
-		});
+		createRootItem();
 	}, [rootTemplate, outlineItems]);
 
 	useEffect(() => {
 		const unsubscribe = reka.listenToChanges(payload => {
 			if (payload.event !== 'change') return;
 			if (payload.type === 'splice') {
-				if (payload.addedCount !== 1) return;
-				const item = payload.added[0];
-				const rekaItem = reka.getNodeFromId(item.id, t.Template);
-				const parent = reka.getParent(rekaItem);
-				if (!parent || !(parent.node instanceof t.SlottableTemplate)) return;
-				const parentChildren = parent.node.children;
-
-				// get the items index in parentChildren
-				const index = parentChildren.indexOf(rekaItem);
-				console.log({ name: getTemplateName(rekaItem), index });
+				// if (payload.addedCount !== 1) return;
+				// const item = payload.added[0];
+				// const rekaItem = reka.getNodeFromId(item.id, t.Template);
+				// const parent = reka.getParent(rekaItem);
+				// if (!parent || !(parent.node instanceof t.SlottableTemplate)) return;
+				// const parentChildren = parent.node.children;
+				// // get the items index in parentChildren
+				// const index = parentChildren.indexOf(rekaItem);
+				// console.log({ name: getTemplateName(rekaItem), index });
 			}
 		});
 		return () => unsubscribe();
@@ -171,6 +173,7 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 			<div className="relative flex-1">
 				<ComponentSettings />
 				<SortableList items={outlineItems} />
+				{/* <SortableList items={outlineItems} /> */}
 			</div>
 		</div>
 	);

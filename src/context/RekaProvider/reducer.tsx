@@ -6,7 +6,7 @@ import type { ItemChangedReason as Reason } from '@/lib/SortableTreeV2/types';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import * as t from '@rekajs/types';
 
-export type RekaRef = { id: string; name: string; template: t.Template };
+export type RekaRef = { name: string; id: string; depth: number };
 
 export type ComponentTreeItem = TreeItem<RekaRef>;
 export type ComponentTreeItems = TreeItems<RekaRef>;
@@ -67,6 +67,9 @@ const updateTree = (
 	let item: ComponentTreeItem;
 	switch (payload.reason.type) {
 		// collapased or expanded
+		case 'dropped':
+			draft.outlineItems = payload.items;
+			break;
 		case 'collapsed':
 		case 'expanded':
 			item = payload.reason.item;
