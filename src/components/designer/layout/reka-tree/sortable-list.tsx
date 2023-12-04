@@ -39,6 +39,16 @@ export const SortableList = ({ items }: ListProps) => {
 						});
 					});
 
+					reka.change(() => {
+						const appComponent = reka.state.program.components.find(
+							component => component.name === 'App'
+						);
+
+						reka.change(() => {
+							appComponent.template.children = items[0].children;
+						});
+					});
+
 					if (
 						newParentRef &&
 						fromParentRef &&
@@ -86,29 +96,6 @@ export const SortableList = ({ items }: ListProps) => {
 							return;
 						}
 
-						reka.change(() => {
-							if (
-								// if target is not a slottable template
-								!(target instanceof t.SlottableTemplate) ||
-								!newParentRef.canHaveChildren
-							) {
-								console.log('target is not slottable template');
-								return;
-							}
-							// add to new parent
-							target.children.splice(target.children.indexOf(child), 0, child);
-							if (fromParentRef) {
-								// remove from old parent
-								let oldParentId = String(fromParentRef.id);
-								let oldParent = reka.getNodeFromId(oldParentId, t.Template);
-								if (oldParent instanceof t.SlottableTemplate) {
-									oldParent.children.splice(
-										oldParent.children.indexOf(child),
-										1
-									);
-								}
-							}
-						});
 						// handle adding to new parent
 						// reka.change(() => {
 						// 	if (!(newParent instanceof t.SlottableTemplate)) {

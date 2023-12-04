@@ -11,6 +11,7 @@ import type { TreeItem } from '@/lib/SortableTreeV2/types';
 import { useRekaEditor } from '@/context/RekaProvider';
 import { RekaRef } from '@/context/RekaProvider/reducer';
 import { getTemplateName } from '@/utils';
+import { toJS } from '@rekajs/core';
 
 const SortableList = dynamic(() => import('./sortable-list'), { ssr: false });
 
@@ -21,6 +22,12 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 	const { actions, editorState } = useRekaEditor();
 	const { outlineItems, hydrated } = editorState;
 	const { rootApp, rootTemplate } = useRekaActions();
+
+	const appComponent = reka.state.program.components.find(
+		component => component.name === 'App'
+	);
+
+	const componentObj = toJS(appComponent)?.template;
 
 	const itemsHaveRoot = useMemo(() => {
 		return outlineItems.some(item => item.id === rootTemplate?.id);
@@ -170,7 +177,7 @@ export const RekaTree = observer(({ gridArea = 'components' }: TreeProps) => {
 			</div>
 			<div className="relative flex-1">
 				<ComponentSettings />
-				<SortableList items={outlineItems} />
+				<SortableList items={[componentObj]} />
 			</div>
 		</div>
 	);
