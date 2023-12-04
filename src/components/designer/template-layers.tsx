@@ -37,7 +37,6 @@ const RenderTemplateNode = observer((props: RenderTemplateNodeProps) => {
 	const { reka } = useReka();
 	const depth = props.depth ?? 0;
 	const template = reka.getNodeFromId(props.templateId, t.Template);
-	const templateObj = toJS(props.templateNode);
 
 	// console.log({ children: templateObj.children, id: props.templateId });
 
@@ -94,7 +93,7 @@ const RenderTemplateNode = observer((props: RenderTemplateNodeProps) => {
 					</div>
 				</div>
 			</div>
-			{templateObj.children.map(child => {
+			{props.templateNode.children.map(child => {
 				return (
 					<RenderTemplateNode
 						key={child.id}
